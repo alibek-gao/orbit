@@ -1,4 +1,4 @@
-import React, {createContext, useState} from 'react';
+import React, {createContext, useEffect, useState} from 'react';
 
 const AuthContext = createContext();
 const { Provider } = AuthContext;
@@ -10,7 +10,21 @@ const AuthProvider = ({ children }) => {
     userInfo: {}
   });
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const expiresAt = localStorage.getItem('expiresAt');
+    const userInfo = localStorage.getItem('userInfo');
+    setAuthState({
+      token,
+      expiresAt,
+      userInfo: userInfo ? JSON.parse(userInfo) : {}
+    })
+  }, []);
+
   const setAuthInfo = ({ token, userInfo, expiresAt }) => {
+    localStorage.setItem('token',token);
+    localStorage.setItem('expiresAt',expiresAt);
+    localStorage.setItem('userInfo',JSON.stringify(userInfo));
     setAuthState({
       token, userInfo, expiresAt
     })
