@@ -1,9 +1,11 @@
 import React, {createContext, useEffect, useState} from 'react';
+import {useHistory} from "react-router";
 
 const AuthContext = createContext();
 const { Provider } = AuthContext;
 
 const AuthProvider = ({ children }) => {
+  const history = useHistory();
   const [authState, setAuthState] = useState({
     token: null,
     expiresAt: null,
@@ -30,6 +32,18 @@ const AuthProvider = ({ children }) => {
     })
   }
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('expiresAt');
+    localStorage.removeItem('userInfo');
+    setAuthState({
+      token: null,
+      expiresAt: null,
+      userInfo: {}
+    });
+    history.push('/login');
+  }
+
   const isAuthenticated = () => {
     if(!authState.token || !authState.expiresAt) {
       return false;
@@ -42,7 +56,8 @@ const AuthProvider = ({ children }) => {
       value={{
         authState,
         setAuthState: authInfo => setAuthInfo(authInfo),
-        isAuthenticated
+        isAuthenticated,
+        logout
       }}
     >
       {children}
