@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwtDecode = require('jwt-decode');
 const mongoose = require('mongoose');
+const jwt = require('express-jwt')
 
 const dashboardData = require('./data/dashboard');
 const User = require('./data/User');
@@ -134,8 +135,39 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard-data', (req, res) =>
-  res.json(dashboardData)
+const attachUser = (req, res, next) => {
+  const token = req.headers.authorization;
+
+  if(!token) return res.status(401).json({message: 'auth invalid'});
+
+  const decodedToken = jwtDecode(token.slice(7));
+
+  if(!decodedToken) return res.status(401).json({message: 'auth problem'});
+
+  req.user = decodedToken;
+  next();
+}
+
+app.use(attachUser);
+
+const checkJwt = jwt({
+  secret: process.env.JWT_SECRET,
+  issuer: 'api.orbit',
+  audience: 'api.orbit',
+});
+
+const requireAdmin = (req, res, next) => {
+  const { role } = req.user;
+  if (role !== 'admin') {
+    return res.status(401).json({message: 'bad role'});
+  }
+  next();
+}
+
+app.get('/api/dashboard-data', checkJwt, (req, res) => {
+  console.log(req.user)
+  return res.json(dashboardData)
+  }
 );
 
 app.patch('/api/user-role', async (req, res) => {
@@ -161,7 +193,7 @@ app.patch('/api/user-role', async (req, res) => {
   }
 });
 
-app.get('/api/inventory', async (req, res) => {
+app.get('/api/inventory', checkJwt, requireAdmin, async (req, res) => {
   try {
     const inventoryItems = await InventoryItem.find();
     res.json(inventoryItems);
@@ -170,7 +202,7 @@ app.get('/api/inventory', async (req, res) => {
   }
 });
 
-app.post('/api/inventory', async (req, res) => {
+app.post('/api/inventory', checkJwt, requireAdmin, async (req, res) => {
   try {
     const inventoryItem = new InventoryItem(req.body);
     await inventoryItem.save();
@@ -186,7 +218,7 @@ app.post('/api/inventory', async (req, res) => {
   }
 });
 
-app.delete('/api/inventory/:id', async (req, res) => {
+app.delete('/api/inventory/:id', checkJwt, requireAdmin, async (req, res) => {
   try {
     const deletedItem = await InventoryItem.findOneAndDelete(
       { _id: req.params.id }

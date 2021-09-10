@@ -49,7 +49,6 @@ const AdminRoute = ({ children, ...rest }) => {
 }
 
 const AppRoutes = () => {
-  const authContext = useContext(AuthContext);
   return (
     <Switch>
       <Route path="/login">
